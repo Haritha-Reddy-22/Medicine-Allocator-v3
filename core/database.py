@@ -19,9 +19,6 @@ SessionLocal = sessionmaker(
 
 
 def get_db():
-    """
-    Returns a database session.
-    """
     db = SessionLocal()
 
     try:
@@ -32,9 +29,9 @@ def get_db():
 
 
 def initialize_database():
-    """
-    Creates all database tables.
-    """
+
+    # Import all models here
+    from models.user import User
 
     Base.metadata.create_all(bind=engine)
 

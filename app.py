@@ -1,9 +1,10 @@
 import streamlit as st
 
-from config.settings import APP_NAME
+from config.settings import APP_NAME, DATABASE_PATH
 from core.database import initialize_database
 
-# Create database
+print("Database Path:", DATABASE_PATH)
+
 initialize_database()
 
 st.set_page_config(
