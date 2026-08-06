@@ -33,6 +33,8 @@ def initialize_database():
     # Import all models here
     from models.user import User
     from models.hospital import Hospital
+    from models.medicine import Medicine
+    from models.inventory import Inventory
 
     Base.metadata.create_all(bind=engine)
 
