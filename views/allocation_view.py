@@ -2,6 +2,7 @@ import streamlit as st
 
 from core.database import SessionLocal
 from services.allocation_service import AllocationService
+from components.maps.hospital_map import HospitalMap
 
 
 def show_allocation():
@@ -29,22 +30,26 @@ def show_allocation():
             keyword
         )
 
-        st.divider()
-
         if not results:
 
-            st.warning("No hospitals found with this medicine.")
+            st.warning(
+                "No hospitals found with this medicine."
+            )
 
             return
 
-        st.subheader(f"Results ({len(results)})")
+        st.subheader(
+            f"Results ({len(results)})"
+        )
 
         for item in results:
 
             if item.quantity > 100:
                 status = "🟢 High Stock"
-            elif item.quantity > 30:
+
+            elif item.quantity > item.reorder_level:
                 status = "🟡 Medium Stock"
+
             else:
                 status = "🔴 Low Stock"
 
@@ -72,6 +77,12 @@ def show_allocation():
                         "Stock",
                         item.quantity
                     )
+
+        st.divider()
+
+        st.subheader("🗺️ Hospital Locations")
+
+        HospitalMap.render(results)
 
     finally:
 
