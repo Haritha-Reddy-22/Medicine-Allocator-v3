@@ -10,13 +10,31 @@ def show_allocation():
     st.title("🔍 Smart Medicine Allocator")
 
     st.write(
-        "Search for a medicine to find hospitals where it is available."
+        "Search for a medicine and optionally provide your location to find the nearest hospital."
     )
 
     keyword = st.text_input(
         "💊 Medicine Name",
         placeholder="Example: Paracetamol"
     )
+
+    st.subheader("📍 Your Location (Optional)")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        user_latitude = st.number_input(
+            "Latitude",
+            value=0.0,
+            format="%.6f"
+        )
+
+    with col2:
+        user_longitude = st.number_input(
+            "Longitude",
+            value=0.0,
+            format="%.6f"
+        )
 
     if not keyword.strip():
         return
@@ -25,10 +43,21 @@ def show_allocation():
 
     try:
 
-        results = AllocationService.search_medicine(
-            db,
-            keyword
-        )
+        if user_latitude == 0.0 and user_longitude == 0.0:
+
+            results = AllocationService.search_medicine(
+                db,
+                keyword
+            )
+
+        else:
+
+            results = AllocationService.search_medicine(
+                db,
+                keyword,
+                user_latitude,
+                user_longitude
+            )
 
         if not results:
 
@@ -38,9 +67,27 @@ def show_allocation():
 
             return
 
+        # ----------------------------
+        # Recommended Hospital
+        # ----------------------------
+
+        if hasattr(results[0], "distance"):
+
+            nearest = results[0]
+
+            st.success(
+                f"⭐ Recommended Hospital: "
+                f"{nearest.hospital.hospital_name} "
+                f"({nearest.distance} km away)"
+            )
+
         st.subheader(
             f"Results ({len(results)})"
         )
+
+        # ----------------------------
+        # Hospital Cards
+        # ----------------------------
 
         for item in results:
 
@@ -59,7 +106,7 @@ def show_allocation():
 
                 with col1:
 
-                    st.markdown(f"""
+                    text = f"""
 ### 🏥 {item.hospital.hospital_name}
 
 💊 **Medicine:** {item.medicine.medicine_name}
@@ -69,7 +116,13 @@ def show_allocation():
 📦 **Available Stock:** {item.quantity}
 
 🚦 **Status:** {status}
-""")
+"""
+
+                    if hasattr(item, "distance"):
+
+                        text += f"\n📏 **Distance:** {item.distance} km"
+
+                    st.markdown(text)
 
                 with col2:
 
