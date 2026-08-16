@@ -3,10 +3,13 @@ from sqlalchemy.orm import Session
 from models.inventory import Inventory
 from models.hospital import Hospital
 from models.medicine import Medicine
-from repositories.inventory_repository import InventoryRepository
 
 
 class InventoryService:
+
+    # -----------------------------------------
+    # ADD INVENTORY
+    # -----------------------------------------
 
     @staticmethod
     def add_inventory(
@@ -55,6 +58,10 @@ class InventoryService:
 
         return True, "Inventory added successfully."
 
+    # -----------------------------------------
+    # GET ALL INVENTORY
+    # -----------------------------------------
+
     @staticmethod
     def get_all_inventory(db: Session):
 
@@ -63,13 +70,32 @@ class InventoryService:
             .all()
         )
 
+    # -----------------------------------------
+    # GET LOW STOCK INVENTORY
+    # -----------------------------------------
+
+    @staticmethod
+    def get_low_stock_inventory(db: Session):
+
+        return (
+            db.query(Inventory)
+            .filter(
+                Inventory.quantity <= Inventory.reorder_level
+            )
+            .all()
+        )
+
+    # -----------------------------------------
+    # MEDICINE AVAILABILITY
+    # -----------------------------------------
+
     @staticmethod
     def get_medicine_availability(
         db: Session,
         medicine_id: int
     ):
 
-        results = (
+        return (
             db.query(
                 Inventory,
                 Hospital,
@@ -88,5 +114,3 @@ class InventoryService:
             )
             .all()
         )
-
-        return results
