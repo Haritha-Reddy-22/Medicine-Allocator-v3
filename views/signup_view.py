@@ -15,18 +15,25 @@ def show_signup():
         phone,
         password,
         confirm_password,
-        role,
         submitted
     ) = SignupForm.render()
 
     if submitted:
 
         if not full_name.strip():
-            st.warning("Please enter your full name.")
+
+            st.warning(
+                "Please enter your full name."
+            )
+
             return
 
         if password != confirm_password:
-            st.error("Passwords do not match.")
+
+            st.error(
+                "Passwords do not match."
+            )
+
             return
 
         db = SessionLocal()
@@ -38,18 +45,23 @@ def show_signup():
                 full_name=full_name,
                 email=email,
                 phone=phone,
-                password=password,
-                role=role
+                password=password
             )
 
             if success:
-                st.success("✅ Account Created Successfully!")
+
+                st.success(
+                    "✅ Account Created Successfully!"
+                )
 
             else:
+
                 st.error(result)
 
         except Exception as e:
+
             st.exception(e)
 
         finally:
+
             db.close()

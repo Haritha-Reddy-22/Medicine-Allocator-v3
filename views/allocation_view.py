@@ -2,6 +2,7 @@ import streamlit as st
 
 from core.database import SessionLocal
 from services.allocation_service import AllocationService
+from services.reservation_service import ReservationService
 from components.maps.hospital_map import HospitalMap
 
 
@@ -10,7 +11,8 @@ def show_allocation():
     st.title("🔍 Smart Medicine Allocator")
 
     st.write(
-        "Search for a medicine and optionally provide your location to find the nearest hospital."
+        "Search for a medicine and optionally provide your location "
+        "to find the nearest hospital."
     )
 
     keyword = st.text_input(
@@ -89,7 +91,7 @@ def show_allocation():
         # Hospital Cards
         # ----------------------------
 
-        for item in results:
+        for index, item in enumerate(results):
 
             if item.quantity > 100:
                 status = "🟢 High Stock"
@@ -120,7 +122,10 @@ def show_allocation():
 
                     if hasattr(item, "distance"):
 
-                        text += f"\n📏 **Distance:** {item.distance} km"
+                        text += (
+                            f"\n📏 **Distance:** "
+                            f"{item.distance} km"
+                        )
 
                     st.markdown(text)
 
@@ -130,6 +135,49 @@ def show_allocation():
                         "Stock",
                         item.quantity
                     )
+
+                # ----------------------------
+                # Reservation
+                # ----------------------------
+
+                st.divider()
+
+                quantity = st.number_input(
+                    "Reservation Quantity",
+                    min_value=1,
+                    max_value=item.quantity,
+                    value=1,
+                    step=1,
+                    key=f"reservation_quantity_{index}"
+                )
+
+                if st.button(
+                    "📌 Reserve Medicine",
+                    key=f"reserve_{index}",
+                    use_container_width=True
+                ):
+
+                    success, message = (
+                        ReservationService.add_reservation(
+                            db=db,
+                            hospital_id=item.hospital.id,
+                            medicine_id=item.medicine.id,
+                            quantity=quantity
+                        )
+                    )
+
+                    if success:
+
+                        st.success(message)
+
+                        st.info(
+                            "Your reservation is now Pending. "
+                            "Inventory will be updated after approval."
+                        )
+
+                    else:
+
+                        st.error(message)
 
         st.divider()
 

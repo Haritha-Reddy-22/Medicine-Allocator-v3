@@ -10,11 +10,17 @@ class SignupForm:
 
             st.subheader("📝 Create Account")
 
-            full_name = st.text_input("Full Name")
+            full_name = st.text_input(
+                "Full Name"
+            )
 
-            email = st.text_input("Email")
+            email = st.text_input(
+                "Email"
+            )
 
-            phone = st.text_input("Phone Number")
+            phone = st.text_input(
+                "Phone Number"
+            )
 
             password = st.text_input(
                 "Password",
@@ -24,14 +30,6 @@ class SignupForm:
             confirm_password = st.text_input(
                 "Confirm Password",
                 type="password"
-            )
-
-            role = st.selectbox(
-                "Role",
-                [
-                    "User",
-                    "Hospital"
-                ]
             )
 
             submitted = st.form_submit_button(
@@ -45,6 +43,5 @@ class SignupForm:
             phone,
             password,
             confirm_password,
-            role,
             submitted
         )

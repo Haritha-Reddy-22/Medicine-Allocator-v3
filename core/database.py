@@ -35,6 +35,7 @@ def initialize_database():
     from models.hospital import Hospital
     from models.medicine import Medicine
     from models.inventory import Inventory
+    from models.reservation import Reservation
 
     Base.metadata.create_all(bind=engine)
 

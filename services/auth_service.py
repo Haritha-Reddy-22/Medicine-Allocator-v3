@@ -12,28 +12,36 @@ class AuthService:
         full_name: str,
         email: str,
         phone: str,
-        password: str,
-        role: str = "User"
+        password: str
     ):
 
-        # Check email
-        if UserRepository.get_user_by_email(db, email):
+        # Check if email already exists
+        if UserRepository.get_user_by_email(
+            db,
+            email
+        ):
             return False, "Email already exists."
 
-        # Check phone
-        if UserRepository.get_user_by_phone(db, phone):
+        # Check if phone number already exists
+        if UserRepository.get_user_by_phone(
+            db,
+            phone
+        ):
             return False, "Phone number already exists."
 
-        # Hash password
-        password_hash = hash_password(password)
+        # Hash the password
+        password_hash = hash_password(
+            password
+        )
 
+        # Every new signup is a USER
         user = UserRepository.create_user(
             db=db,
             full_name=full_name,
             email=email,
             phone=phone,
             password_hash=password_hash,
-            role=role
+            role="USER"
         )
 
         return True, user

@@ -76,8 +76,8 @@ def show_inventory():
                 )
 
                 table.append({
-                    "Hospital": item.hospital.hospital_name,
-                    "Medicine": item.medicine.medicine_name,
+                    "Hospital": item.hospital.hospital_name if item.hospital else "Unknown",
+                    "Medicine": item.medicine.medicine_name if item.medicine else "Unknown",
                     "Quantity": item.quantity,
                     "Reorder Level": item.reorder_level,
                     "Status": status
