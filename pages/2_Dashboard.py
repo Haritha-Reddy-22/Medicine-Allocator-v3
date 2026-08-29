@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -8,13 +9,6 @@ from core.database import SessionLocal
 from services.dashboard_service import DashboardService
 from services.analytics_service import AnalyticsService
 from services.reservation_service import ReservationService
-
-
-st.set_page_config(
-    page_title="Dashboard",
-    page_icon="📊",
-    layout="wide"
-)
 
 
 # ==================================================
@@ -167,12 +161,10 @@ try:
         ReservationService.get_all_reservations(db)
     )
 
-
     pending = 0
     approved = 0
     completed = 0
     cancelled = 0
-
 
     for reservation in reservations:
 
@@ -421,10 +413,11 @@ try:
         SessionManager.logout()
 
         st.switch_page(
-            "app.py"
+            "pages/0_Login.py"
         )
 
 
 finally:
 
     db.close()
+

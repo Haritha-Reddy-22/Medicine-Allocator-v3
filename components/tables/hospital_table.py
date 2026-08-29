@@ -2,6 +2,7 @@ import streamlit as st
 
 from components.forms.hospital_edit_form import HospitalEditForm
 from services.hospital_service import HospitalService
+from utils.permissions import Permissions
 
 
 class HospitalTable:
@@ -14,13 +15,17 @@ class HospitalTable:
             st.info("No hospitals found.")
             return
 
+        is_admin = Permissions.is_admin()
+
         for hospital in hospitals:
 
-            with st.container(border=True):
+            # ==========================================
+            # USER VIEW
+            # ==========================================
 
-                col1, col2, col3 = st.columns([6, 2, 2])
+            if not is_admin:
 
-                with col1:
+                with st.container(border=True):
 
                     st.markdown(
                         f"""
@@ -34,75 +39,114 @@ class HospitalTable:
 """
                     )
 
-                with col2:
+            # ==========================================
+            # ADMIN VIEW
+            # ==========================================
 
-                    if st.button(
-                        "✏️ Edit",
-                        key=f"edit_{hospital.id}"
-                    ):
+            else:
 
-                        st.session_state["edit_hospital"] = hospital.id
+                with st.container(border=True):
 
-                with col3:
+                    col1, col2, col3 = st.columns([6, 2, 2])
 
-                    if st.button(
-                        "🗑 Delete",
-                        key=f"delete_{hospital.id}"
-                    ):
+                    with col1:
 
-                        success, message = HospitalService.delete_hospital(
-                            db,
-                            hospital.id
+                        st.markdown(
+                            f"""
+### 🏥 {hospital.hospital_name}
+
+📍 {hospital.city}, {hospital.state}
+
+🛏 Beds : {hospital.available_beds}
+
+👨‍⚕️ Doctors : {hospital.available_doctors}
+"""
                         )
 
-                        if success:
+                    # ----------------------------------
+                    # EDIT
+                    # ----------------------------------
 
-                            st.success(message)
+                    with col2:
 
-                            st.rerun()
+                        if st.button(
+                            "✏️ Edit",
+                            key=f"edit_{hospital.id}"
+                        ):
 
-                        else:
+                            st.session_state["edit_hospital"] = hospital.id
 
-                            st.error(message)
+                    # ----------------------------------
+                    # DELETE
+                    # ----------------------------------
 
-                # -----------------------------
-                # Edit Form
-                # -----------------------------
+                    with col3:
 
-                if st.session_state.get("edit_hospital") == hospital.id:
+                        if st.button(
+                            "🗑 Delete",
+                            key=f"delete_{hospital.id}"
+                        ):
 
-                    (
-                        hospital_name,
-                        city,
-                        state,
-                        available_beds,
-                        available_doctors,
-                        save
-                    ) = HospitalEditForm.render(hospital)
-
-                    if save:
-
-                        success, message = HospitalService.update_hospital(
-                            db=db,
-                            hospital_id=hospital.id,
-                            hospital_name=hospital_name,
-                            city=city,
-                            state=state,
-                            available_beds=available_beds,
-                            available_doctors=available_doctors
-                        )
-
-                        if success:
-
-                            st.success(message)
-
-                            st.session_state.pop(
-                                "edit_hospital",
-                                None
+                            success, message = (
+                                HospitalService.delete_hospital(
+                                    db,
+                                    hospital.id
+                                )
                             )
 
-                            st.rerun()
+                            if success:
 
-                        else:
+                                st.success(message)
 
-                            st.error(message)
+                                st.rerun()
+
+                            else:
+
+                                st.error(message)
+
+                    # ----------------------------------
+                    # EDIT FORM
+                    # ----------------------------------
+
+                    if (
+                        st.session_state.get("edit_hospital")
+                        == hospital.id
+                    ):
+
+                        (
+                            hospital_name,
+                            city,
+                            state,
+                            available_beds,
+                            available_doctors,
+                            save
+                        ) = HospitalEditForm.render(hospital)
+
+                        if save:
+
+                            success, message = (
+                                HospitalService.update_hospital(
+                                    db=db,
+                                    hospital_id=hospital.id,
+                                    hospital_name=hospital_name,
+                                    city=city,
+                                    state=state,
+                                    available_beds=available_beds,
+                                    available_doctors=available_doctors
+                                )
+                            )
+
+                            if success:
+
+                                st.success(message)
+
+                                st.session_state.pop(
+                                    "edit_hospital",
+                                    None
+                                )
+
+                                st.rerun()
+
+                            else:
+
+                                st.error(message)

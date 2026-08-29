@@ -20,21 +20,23 @@ class AuthService:
             db,
             email
         ):
+
             return False, "Email already exists."
 
-        # Check if phone number already exists
+        # Check if phone already exists
         if UserRepository.get_user_by_phone(
             db,
             phone
         ):
+
             return False, "Phone number already exists."
 
-        # Hash the password
+        # Hash password
         password_hash = hash_password(
             password
         )
 
-        # Every new signup is a USER
+        # Every new signup is automatically USER
         user = UserRepository.create_user(
             db=db,
             full_name=full_name,
@@ -59,12 +61,34 @@ class AuthService:
         )
 
         if not user:
+
             return False, "User not found."
+
+        if not user.is_active:
+
+            return False, "This account is inactive."
 
         if not verify_password(
             password,
             user.password_hash
         ):
+
             return False, "Incorrect password."
 
         return True, user
+
+    @staticmethod
+    def update_user_role(
+        db: Session,
+        user_id: int,
+        role: str,
+        current_admin_id: int | None = None
+    ):
+
+        return UserRepository.update_role(
+            db=db,
+            user_id=user_id,
+            role=role,
+            current_admin_id=current_admin_id
+        )
+

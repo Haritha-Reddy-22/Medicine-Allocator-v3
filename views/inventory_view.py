@@ -2,12 +2,23 @@ import streamlit as st
 
 from components.forms.inventory_form import InventoryForm
 from core.database import SessionLocal
+from core.session import SessionManager
 from services.hospital_service import HospitalService
 from services.inventory_service import InventoryService
 from services.medicine_service import MedicineService
 
 
 def show_inventory():
+
+    # ==========================================
+    # ADMIN ACCESS ONLY
+    # ==========================================
+
+    SessionManager.require_admin()
+
+    # ==========================================
+    # PAGE TITLE
+    # ==========================================
 
     st.title("📦 Inventory Management")
 
@@ -19,12 +30,24 @@ def show_inventory():
         medicines = MedicineService.get_all_medicines(db)
 
         if not hospitals:
-            st.warning("Please add at least one hospital first.")
+
+            st.warning(
+                "Please add at least one hospital first."
+            )
+
             return
 
         if not medicines:
-            st.warning("Please add at least one medicine first.")
+
+            st.warning(
+                "Please add at least one medicine first."
+            )
+
             return
+
+        # ==========================================
+        # INVENTORY FORM
+        # ==========================================
 
         (
             hospital_id,
@@ -37,6 +60,10 @@ def show_inventory():
             medicines
         )
 
+        # ==========================================
+        # ADD INVENTORY
+        # ==========================================
+
         if submitted:
 
             success, message = InventoryService.add_inventory(
@@ -48,16 +75,25 @@ def show_inventory():
             )
 
             if success:
+
                 st.success(message)
                 st.rerun()
+
             else:
+
                 st.error(message)
+
+        # ==========================================
+        # INVENTORY LIST
+        # ==========================================
 
         st.divider()
 
         st.subheader("📋 Inventory List")
 
-        inventory_items = InventoryService.get_all_inventory(db)
+        inventory_items = InventoryService.get_all_inventory(
+            db
+        )
 
         if not inventory_items:
 
@@ -76,8 +112,16 @@ def show_inventory():
                 )
 
                 table.append({
-                    "Hospital": item.hospital.hospital_name if item.hospital else "Unknown",
-                    "Medicine": item.medicine.medicine_name if item.medicine else "Unknown",
+                    "Hospital": (
+                        item.hospital.hospital_name
+                        if item.hospital
+                        else "Unknown"
+                    ),
+                    "Medicine": (
+                        item.medicine.medicine_name
+                        if item.medicine
+                        else "Unknown"
+                    ),
                     "Quantity": item.quantity,
                     "Reorder Level": item.reorder_level,
                     "Status": status

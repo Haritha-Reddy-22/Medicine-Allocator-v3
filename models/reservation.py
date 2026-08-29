@@ -14,6 +14,11 @@ class Reservation(Base):
         primary_key=True
     )
 
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=False
+    )
+
     hospital_id: Mapped[int] = mapped_column(
         ForeignKey("hospitals.id"),
         nullable=False
@@ -39,6 +44,8 @@ class Reservation(Base):
         DateTime,
         default=datetime.utcnow
     )
+
+    user = relationship("User")
 
     hospital = relationship("Hospital")
 

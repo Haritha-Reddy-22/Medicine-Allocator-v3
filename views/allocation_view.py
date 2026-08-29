@@ -1,12 +1,25 @@
 import streamlit as st
 
+from components.maps.hospital_map import HospitalMap
 from core.database import SessionLocal
+from core.session import SessionManager
 from services.allocation_service import AllocationService
 from services.reservation_service import ReservationService
-from components.maps.hospital_map import HospitalMap
 
 
 def show_allocation():
+
+    # ==========================================
+    # USER / ADMIN ACCESS
+    # ==========================================
+
+    SessionManager.require_user()
+
+    current_user_id = SessionManager.get_user_id()
+
+    # ==========================================
+    # PAGE TITLE
+    # ==========================================
 
     st.title("🔍 Smart Medicine Allocator")
 
@@ -15,16 +28,25 @@ def show_allocation():
         "to find the nearest hospital."
     )
 
+    # ==========================================
+    # MEDICINE SEARCH
+    # ==========================================
+
     keyword = st.text_input(
         "💊 Medicine Name",
         placeholder="Example: Paracetamol"
     )
+
+    # ==========================================
+    # LOCATION
+    # ==========================================
 
     st.subheader("📍 Your Location (Optional)")
 
     col1, col2 = st.columns(2)
 
     with col1:
+
         user_latitude = st.number_input(
             "Latitude",
             value=0.0,
@@ -32,6 +54,7 @@ def show_allocation():
         )
 
     with col2:
+
         user_longitude = st.number_input(
             "Longitude",
             value=0.0,
@@ -39,13 +62,21 @@ def show_allocation():
         )
 
     if not keyword.strip():
+
         return
 
     db = SessionLocal()
 
     try:
 
-        if user_latitude == 0.0 and user_longitude == 0.0:
+        # ==========================================
+        # SEARCH MEDICINE
+        # ==========================================
+
+        if (
+            user_latitude == 0.0
+            and user_longitude == 0.0
+        ):
 
             results = AllocationService.search_medicine(
                 db,
@@ -61,6 +92,10 @@ def show_allocation():
                 user_longitude
             )
 
+        # ==========================================
+        # NO RESULTS
+        # ==========================================
+
         if not results:
 
             st.warning(
@@ -69,9 +104,9 @@ def show_allocation():
 
             return
 
-        # ----------------------------
-        # Recommended Hospital
-        # ----------------------------
+        # ==========================================
+        # RECOMMENDED HOSPITAL
+        # ==========================================
 
         if hasattr(results[0], "distance"):
 
@@ -83,23 +118,30 @@ def show_allocation():
                 f"({nearest.distance} km away)"
             )
 
+        # ==========================================
+        # RESULTS
+        # ==========================================
+
         st.subheader(
             f"Results ({len(results)})"
         )
 
-        # ----------------------------
-        # Hospital Cards
-        # ----------------------------
+        # ==========================================
+        # HOSPITAL CARDS
+        # ==========================================
 
         for index, item in enumerate(results):
 
             if item.quantity > 100:
+
                 status = "🟢 High Stock"
 
             elif item.quantity > item.reorder_level:
+
                 status = "🟡 Medium Stock"
 
             else:
+
                 status = "🔴 Low Stock"
 
             with st.container(border=True):
@@ -136,9 +178,9 @@ def show_allocation():
                         item.quantity
                     )
 
-                # ----------------------------
-                # Reservation
-                # ----------------------------
+                # ==========================================
+                # RESERVATION
+                # ==========================================
 
                 st.divider()
 
@@ -160,6 +202,7 @@ def show_allocation():
                     success, message = (
                         ReservationService.add_reservation(
                             db=db,
+                            user_id=current_user_id,
                             hospital_id=item.hospital.id,
                             medicine_id=item.medicine.id,
                             quantity=quantity
@@ -178,6 +221,10 @@ def show_allocation():
                     else:
 
                         st.error(message)
+
+        # ==========================================
+        # HOSPITAL MAP
+        # ==========================================
 
         st.divider()
 
