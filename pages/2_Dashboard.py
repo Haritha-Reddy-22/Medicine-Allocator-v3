@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -22,6 +21,90 @@ if not SessionManager.is_logged_in():
 
 
 user = SessionManager.get_user()
+
+# Get user's role
+role = user["role"]
+
+
+# ==================================================
+# USER DASHBOARD
+# ==================================================
+
+if role != "ADMIN":
+
+    st.title("📊 Dashboard")
+
+    st.success(
+        f"Welcome, {user['name']} 👋"
+    )
+
+    st.write(
+        f"**Email:** {user['email']}"
+    )
+
+    st.write(
+        f"**Role:** {user['role']}"
+    )
+
+    st.divider()
+
+    st.subheader("👤 Welcome!")
+
+    st.info(
+        "You can use the Medicine Availability and "
+        "Reservations sections to find medicines and "
+        "manage your reservations."
+    )
+
+    st.divider()
+
+    st.subheader("💊 What you can do")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.markdown(
+            """
+            ### 🔎 Find Medicines
+
+            Search for medicines and check their
+            availability at hospitals.
+            """
+        )
+
+    with col2:
+
+        st.markdown(
+            """
+            ### 📌 Reservations
+
+            Create and manage your medicine reservations.
+            """
+        )
+
+    st.divider()
+
+    # Logout
+    if st.button(
+        "🚪 Logout",
+        use_container_width=True
+    ):
+
+        SessionManager.logout()
+
+        st.switch_page(
+            "pages/0_Login.py"
+        )
+
+    # IMPORTANT:
+    # Stop here so USER never reaches admin analytics.
+    st.stop()
+
+
+# ==================================================
+# ADMIN DASHBOARD
+# ==================================================
 
 db = SessionLocal()
 
@@ -411,13 +494,13 @@ try:
     ):
 
         SessionManager.logout()
+        st.rerun()
 
-        st.switch_page(
-            "pages/0_Login.py"
-        )
+        # st.switch_page(
+        #     "pages/0_Login.py"
+        # )
 
 
 finally:
 
     db.close()
-
