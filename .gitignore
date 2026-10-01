@@ -36,3 +36,13 @@ dist/
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Local database
+data/medicine_allocator.db
+
+# Uploaded prescription files
+data/prescriptions/
+
+# Python cache
+__pycache__/
+*.pyc
