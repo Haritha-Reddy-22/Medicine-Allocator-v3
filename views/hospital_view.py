@@ -6,9 +6,19 @@ from core.database import SessionLocal
 from core.session import SessionManager
 from utils.permissions import Permissions
 from services.hospital_service import HospitalService
+from translations.languages import t
 
 
 def show_hospitals():
+
+    # ==========================================
+    # CURRENT LANGUAGE
+    # ==========================================
+
+    language = st.session_state.get(
+        "language",
+        "English"
+    )
 
     # ==========================================
     # CHECK LOGIN
@@ -26,7 +36,9 @@ def show_hospitals():
     # PAGE TITLE
     # ==========================================
 
-    st.title("🏥 Hospital Management")
+    st.title(
+        f"🏥 {t('hospital_management', language)}"
+    )
 
     # ==========================================
     # ADMIN-ONLY MANAGEMENT SECTION
@@ -34,7 +46,9 @@ def show_hospitals():
 
     if Permissions.is_admin():
 
-        st.subheader("➕ Add Hospital")
+        st.subheader(
+            f"➕ {t('add_hospital', language)}"
+        )
 
         (
             hospital_name,
@@ -92,9 +106,7 @@ def show_hospitals():
     else:
 
         st.info(
-            "👤 You are logged in as a USER. "
-            "You can view hospitals, but only administrators "
-            "can add or manage hospital records."
+            f"👤 {t('user_hospital_info', language)}"
         )
 
     # ==========================================
@@ -103,11 +115,16 @@ def show_hospitals():
 
     st.divider()
 
-    st.subheader("📋 Registered Hospitals")
+    st.subheader(
+        f"📋 {t('registered_hospitals', language)}"
+    )
 
     search = st.text_input(
-        "🔍 Search Hospital",
-        placeholder="Search by Hospital Name, City or State"
+        f"🔍 {t('search_hospital', language)}",
+        placeholder=t(
+            "search_hospital_placeholder",
+            language
+        )
     )
 
     db = SessionLocal()

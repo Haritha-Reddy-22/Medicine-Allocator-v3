@@ -3,6 +3,7 @@ import streamlit as st
 from components.forms.hospital_edit_form import HospitalEditForm
 from services.hospital_service import HospitalService
 from utils.permissions import Permissions
+from translations.languages import t
 
 
 class HospitalTable:
@@ -10,9 +11,17 @@ class HospitalTable:
     @staticmethod
     def render(db, hospitals):
 
+        language = st.session_state.get(
+            "language",
+            "English"
+        )
+
         if not hospitals:
 
-            st.info("No hospitals found.")
+            st.info(
+                t("no_hospitals_found", language)
+            )
+
             return
 
         is_admin = Permissions.is_admin()
@@ -33,9 +42,9 @@ class HospitalTable:
 
 📍 {hospital.city}, {hospital.state}
 
-🛏 Beds : {hospital.available_beds}
+🛏 {t("beds", language)} : {hospital.available_beds}
 
-👨‍⚕️ Doctors : {hospital.available_doctors}
+👨‍⚕️ {t("doctors", language)} : {hospital.available_doctors}
 """
                     )
 
@@ -47,7 +56,9 @@ class HospitalTable:
 
                 with st.container(border=True):
 
-                    col1, col2, col3 = st.columns([6, 2, 2])
+                    col1, col2, col3 = st.columns(
+                        [6, 2, 2]
+                    )
 
                     with col1:
 
@@ -57,9 +68,9 @@ class HospitalTable:
 
 📍 {hospital.city}, {hospital.state}
 
-🛏 Beds : {hospital.available_beds}
+🛏 {t("beds", language)} : {hospital.available_beds}
 
-👨‍⚕️ Doctors : {hospital.available_doctors}
+👨‍⚕️ {t("doctors", language)} : {hospital.available_doctors}
 """
                         )
 
@@ -70,11 +81,13 @@ class HospitalTable:
                     with col2:
 
                         if st.button(
-                            "✏️ Edit",
+                            f"✏️ {t('edit', language)}",
                             key=f"edit_{hospital.id}"
                         ):
 
-                            st.session_state["edit_hospital"] = hospital.id
+                            st.session_state[
+                                "edit_hospital"
+                            ] = hospital.id
 
                     # ----------------------------------
                     # DELETE
@@ -83,7 +96,7 @@ class HospitalTable:
                     with col3:
 
                         if st.button(
-                            "🗑 Delete",
+                            f"🗑 {t('delete', language)}",
                             key=f"delete_{hospital.id}"
                         ):
 
@@ -109,7 +122,9 @@ class HospitalTable:
                     # ----------------------------------
 
                     if (
-                        st.session_state.get("edit_hospital")
+                        st.session_state.get(
+                            "edit_hospital"
+                        )
                         == hospital.id
                     ):
 
@@ -120,7 +135,9 @@ class HospitalTable:
                             available_beds,
                             available_doctors,
                             save
-                        ) = HospitalEditForm.render(hospital)
+                        ) = HospitalEditForm.render(
+                            hospital
+                        )
 
                         if save:
 

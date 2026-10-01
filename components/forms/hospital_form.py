@@ -1,49 +1,81 @@
 import streamlit as st
 
+from translations.languages import t
+
 
 class HospitalForm:
 
     @staticmethod
     def render():
 
-        with st.form("hospital_form", clear_on_submit=True):
+        language = st.session_state.get(
+            "language",
+            "English"
+        )
 
-            st.subheader("🏥 Add Hospital")
+        with st.form(
+            "hospital_form",
+            clear_on_submit=True
+        ):
 
-            hospital_name = st.text_input("Hospital Name")
+            st.subheader(
+                f"🏥 {t('add_hospital', language)}"
+            )
 
-            address = st.text_area("Address")
+            hospital_name = st.text_input(
+                t("hospital_name", language)
+            )
+
+            address = st.text_area(
+                t("address", language)
+            )
 
             col1, col2 = st.columns(2)
 
             with col1:
-                city = st.text_input("City")
+
+                city = st.text_input(
+                    t("city", language)
+                )
 
             with col2:
-                state = st.text_input("State")
+
+                state = st.text_input(
+                    t("state", language)
+                )
 
             col3, col4 = st.columns(2)
 
             with col3:
-                pincode = st.text_input("Pincode")
+
+                pincode = st.text_input(
+                    t("pincode", language)
+                )
 
             with col4:
-                contact_number = st.text_input("Contact Number")
 
-            email = st.text_input("Email")
+                contact_number = st.text_input(
+                    t("contact_number", language)
+                )
+
+            email = st.text_input(
+                t("email", language)
+            )
 
             col5, col6 = st.columns(2)
 
             with col5:
+
                 latitude = st.number_input(
-                    "Latitude",
+                    t("latitude", language),
                     value=0.0,
                     format="%.6f"
                 )
 
             with col6:
+
                 longitude = st.number_input(
-                    "Longitude",
+                    t("longitude", language),
                     value=0.0,
                     format="%.6f"
                 )
@@ -51,23 +83,25 @@ class HospitalForm:
             col7, col8 = st.columns(2)
 
             with col7:
+
                 available_beds = st.number_input(
-                    "Available Beds",
+                    t("available_beds", language),
                     min_value=0,
                     value=0,
                     step=1
                 )
 
             with col8:
+
                 available_doctors = st.number_input(
-                    "Available Doctors",
+                    t("available_doctors", language),
                     min_value=0,
                     value=0,
                     step=1
                 )
 
             submitted = st.form_submit_button(
-                "➕ Add Hospital",
+                f"➕ {t('add_hospital', language)}",
                 use_container_width=True
             )
 

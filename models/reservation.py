@@ -40,6 +40,21 @@ class Reservation(Base):
         nullable=False
     )
 
+    # ==========================================
+    # PRESCRIPTION INFORMATION
+    # ==========================================
+
+    prescription_path: Mapped[str] = mapped_column(
+        String(500),
+        nullable=True
+    )
+
+    prescription_status: Mapped[str] = mapped_column(
+        String(50),
+        default="Not Required",
+        nullable=False
+    )
+
     reserved_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.utcnow

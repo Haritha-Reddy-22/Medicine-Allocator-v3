@@ -4,6 +4,7 @@ import streamlit as st
 from components.forms.medicine_edit_form import MedicineEditForm
 from core.session import SessionManager
 from services.medicine_service import MedicineService
+from translations.languages import t
 
 
 class MedicineTable:
@@ -11,180 +12,181 @@ class MedicineTable:
     @staticmethod
     def render(db, medicines):
 
-        # ==========================================
-        # NO MEDICINES
-        # ==========================================
-
-        if not medicines:
-
-            st.info(
-                "No medicines found."
-            )
-
-            return
-
-        # ==========================================
-        # CHECK USER ROLE
-        # ==========================================
+        language = st.session_state.get(
+            "language",
+            "English"
+        )
 
         is_admin = SessionManager.is_admin()
 
-        # ==========================================
-        # INITIALIZE SESSION STATE
-        # ==========================================
-
-        if "edit_medicine" not in st.session_state:
-
-            st.session_state.edit_medicine = None
-
-        # ==========================================
-        # DISPLAY MEDICINES
-        # ==========================================
+        if not medicines:
+            st.info(
+                t("no_medicines_found", language)
+            )
+            return
 
         for medicine in medicines:
 
             with st.container(border=True):
 
-                # ==================================
-                # ADMIN
-                # ==================================
+                # ==========================================
+                # MEDICINE DETAILS
+                # ==========================================
 
-                if is_admin:
-
-                    col1, col2, col3 = st.columns(
-                        [6, 2, 2]
-                    )
-
-                # ==================================
-                # USER
-                # ==================================
-
-                else:
-
-                    col1 = st.container()
-
-                # ==================================
-                # MEDICINE INFORMATION
-                # ==================================
+                col1, col2, col3 = st.columns(
+                    [2, 2, 1]
+                )
 
                 with col1:
-
                     st.markdown(
-                        f"""
-### 💊 {medicine.medicine_name}
-
-🧪 Generic : {medicine.generic_name}
-
-📂 Category : {medicine.category}
-
-🏭 Manufacturer : {medicine.manufacturer}
-
-💰 Price : ₹{medicine.unit_price:.2f}
-
-📅 Expiry : {medicine.expiry_date}
-"""
+                        f"### 💊 {medicine.medicine_name}"
                     )
 
-                # ==================================
-                # ADMIN ACTIONS
-                # ==================================
+                    st.write(
+                        f"**{t('generic_name', language)}:** "
+                        f"{medicine.generic_name}"
+                    )
 
-                if is_admin:
+                    st.write(
+                        f"**{t('category', language)}:** "
+                        f"{medicine.category}"
+                    )
 
-                    # --------------------------------
-                    # EDIT
-                    # --------------------------------
+                with col2:
+                    st.write(
+                        f"**{t('manufacturer', language)}:** "
+                        f"{medicine.manufacturer}"
+                    )
 
-                    with col2:
+                    st.write(
+                        f"**{t('unit_price', language)}:** "
+                        f"₹{medicine.unit_price:.2f}"
+                    )
+
+                    prescription_status = (
+                        "Yes"
+                        if getattr(
+                            medicine,
+                            "prescription_required",
+                            False
+                        )
+                        else "No"
+                    )
+
+                    st.write(
+                        f"📄 **Prescription Required:** "
+                        f"{prescription_status}"
+                    )
+
+                with col3:
+
+                    if is_admin:
 
                         if st.button(
                             "✏️ Edit",
-                            key=f"edit_med_{medicine.id}",
+                            key=f"edit_medicine_{medicine.id}",
                             use_container_width=True
                         ):
+                            st.session_state.edit_medicine = medicine.id
+                            st.rerun()
 
-                            st.session_state.edit_medicine = (
-                                medicine.id
+                # ==========================================
+                # EDIT MEDICINE
+                # ==========================================
+
+                if (
+                    is_admin
+                    and st.session_state.get(
+                        "edit_medicine"
+                    ) == medicine.id
+                ):
+
+                    st.divider()
+
+                    (
+                        medicine_name,
+                        generic_name,
+                        category,
+                        manufacturer,
+                        unit_price,
+                        description,
+                        prescription_required,
+                        save
+                    ) = MedicineEditForm.render(
+                        medicine
+                    )
+
+                    if save:
+
+                        success, message = (
+                            MedicineService.update_medicine(
+                                db=db,
+                                medicine_id=medicine.id,
+                                medicine_name=medicine_name,
+                                generic_name=generic_name,
+                                category=category,
+                                manufacturer=manufacturer,
+                                unit_price=unit_price,
+                                description=description,
+                                prescription_required=prescription_required
                             )
+                        )
+
+                        if success:
+
+                            st.success(message)
+
+                            st.session_state.edit_medicine = None
 
                             st.rerun()
 
-                    # --------------------------------
-                    # DELETE
-                    # --------------------------------
+                        else:
 
-                    with col3:
+                            st.error(message)
 
-                        if st.button(
-                            "🗑 Delete",
-                            key=f"delete_med_{medicine.id}",
-                            use_container_width=True
-                        ):
-
-                            success, message = (
-                                MedicineService.delete_medicine(
-                                    db,
-                                    medicine.id
-                                )
-                            )
-
-                            if success:
-
-                                st.success(message)
-
-                                st.rerun()
-
-                            else:
-
-                                st.error(message)
-
-                    # ==================================
-                    # EDIT FORM
-                    # ==================================
-
-                    if (
-                        st.session_state.edit_medicine
-                        == medicine.id
+                    if st.button(
+                        "❌ Cancel",
+                        key=f"cancel_edit_{medicine.id}",
+                        use_container_width=True
                     ):
 
-                        (
-                            medicine_name,
-                            generic_name,
-                            category,
-                            manufacturer,
-                            unit_price,
-                            description,
-                            save
-                        ) = MedicineEditForm.render(
-                            medicine
+                        st.session_state.edit_medicine = None
+                        st.rerun()
+
+                # ==========================================
+                # EXTRA DETAILS
+                # ==========================================
+
+                with st.expander(
+                    "ℹ️ View Details"
+                ):
+
+                    st.write(
+                        f"**Batch Number:** "
+                        f"{medicine.batch_number}"
+                    )
+
+                    st.write(
+                        f"**Expiry Date:** "
+                        f"{medicine.expiry_date}"
+                    )
+
+                    st.write(
+                        f"**Description:** "
+                        f"{medicine.description or 'N/A'}"
+                    )
+
+                    prescription_status = (
+                        "Yes"
+                        if getattr(
+                            medicine,
+                            "prescription_required",
+                            False
                         )
+                        else "No"
+                    )
 
-                        if save:
-
-                            success, message = (
-                                MedicineService.update_medicine(
-                                    db=db,
-                                    medicine_id=medicine.id,
-                                    medicine_name=medicine_name,
-                                    generic_name=generic_name,
-                                    category=category,
-                                    manufacturer=manufacturer,
-                                    unit_price=unit_price,
-                                    description=description
-                                )
-                            )
-
-                            if success:
-
-                                st.success(message)
-
-                                st.session_state.edit_medicine = (
-                                    None
-                                )
-
-                                st.rerun()
-
-                            else:
-
-                                st.error(message)
-
+                    st.write(
+                        f"📄 **Prescription Required:** "
+                        f"{prescription_status}"
+                    )

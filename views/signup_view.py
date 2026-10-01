@@ -3,11 +3,19 @@ import streamlit as st
 from components.forms.signup_form import SignupForm
 from services.auth_service import AuthService
 from core.database import SessionLocal
+from translations.languages import t
 
 
 def show_signup():
 
-    st.title("📝 Create Account")
+    language = st.session_state.get(
+        "language",
+        "English"
+    )
+
+    st.title(
+        f"📝 {t('signup', language)}"
+    )
 
     (
         full_name,
@@ -23,6 +31,7 @@ def show_signup():
         if not full_name.strip():
 
             st.warning(
+                f"⚠️ {t('warning', language)}: "
                 "Please enter your full name."
             )
 
@@ -31,7 +40,7 @@ def show_signup():
         if password != confirm_password:
 
             st.error(
-                "Passwords do not match."
+                "❌ Passwords do not match."
             )
 
             return
@@ -51,7 +60,8 @@ def show_signup():
             if success:
 
                 st.success(
-                    "✅ Account Created Successfully!"
+                    f"✅ {t('success', language)}! "
+                    "Account Created Successfully!"
                 )
 
             else:

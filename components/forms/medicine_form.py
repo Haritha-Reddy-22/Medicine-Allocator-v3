@@ -1,5 +1,8 @@
+
 import streamlit as st
 from datetime import date
+
+from translations.languages import t
 
 
 class MedicineForm:
@@ -7,48 +10,58 @@ class MedicineForm:
     @staticmethod
     def render():
 
-        with st.form("medicine_form", clear_on_submit=True):
+        language = st.session_state.get(
+            "language",
+            "English"
+        )
 
-            st.subheader("💊 Add Medicine")
+        with st.form(
+            "medicine_form",
+            clear_on_submit=True
+        ):
+
+            st.subheader(
+                f"💊 {t('add_medicine', language)}"
+            )
 
             medicine_name = st.text_input(
-                "Medicine Name"
+                t("medicine_name", language)
             )
 
             generic_name = st.text_input(
-                "Generic Name"
+                t("generic_name", language)
             )
 
             category = st.selectbox(
-                "Category",
+                t("category", language),
                 [
-                    "Tablet",
-                    "Capsule",
-                    "Syrup",
-                    "Injection",
-                    "Cream",
-                    "Ointment",
-                    "Drops",
-                    "Inhaler",
-                    "Other"
+                    t("tablet", language),
+                    t("capsule", language),
+                    t("syrup", language),
+                    t("injection", language),
+                    t("cream", language),
+                    t("ointment", language),
+                    t("drops", language),
+                    t("inhaler", language),
+                    t("other", language)
                 ]
             )
 
             manufacturer = st.text_input(
-                "Manufacturer"
+                t("manufacturer", language)
             )
 
             batch_number = st.text_input(
-                "Batch Number"
+                t("batch_number", language)
             )
 
             expiry_date = st.date_input(
-                "Expiry Date",
+                t("expiry_date", language),
                 min_value=date.today()
             )
 
             unit_price = st.number_input(
-                "Unit Price (₹)",
+                t("unit_price", language),
                 min_value=0.0,
                 value=0.0,
                 step=1.0,
@@ -56,11 +69,25 @@ class MedicineForm:
             )
 
             description = st.text_area(
-                "Description"
+                t("description", language)
+            )
+
+            # ======================================
+            # PRESCRIPTION REQUIREMENT
+            # ======================================
+
+            prescription_required = st.selectbox(
+                "📄 Prescription Required?",
+                ["No", "Yes"],
+                index=0
+            )
+
+            prescription_required = (
+                prescription_required == "Yes"
             )
 
             submitted = st.form_submit_button(
-                "➕ Add Medicine",
+                f"➕ {t('add_medicine', language)}",
                 use_container_width=True
             )
 
@@ -73,5 +100,7 @@ class MedicineForm:
             expiry_date,
             unit_price,
             description,
+            prescription_required,
             submitted
         )
+

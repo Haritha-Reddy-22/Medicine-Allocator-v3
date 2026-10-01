@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Date, DateTime, Float, Integer, String
+from sqlalchemy import Date, DateTime, Float, String, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 
 from models.base import Base
@@ -53,6 +53,16 @@ class Medicine(Base):
     description: Mapped[str] = mapped_column(
         String(500),
         nullable=True
+    )
+
+    # ==========================================
+    # PRESCRIPTION REQUIREMENT
+    # ==========================================
+
+    prescription_required: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False
     )
 
     created_at: Mapped[datetime] = mapped_column(

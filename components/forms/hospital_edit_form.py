@@ -1,46 +1,57 @@
 import streamlit as st
 
+from translations.languages import t
+
 
 class HospitalEditForm:
 
     @staticmethod
     def render(hospital):
 
-        with st.form(f"edit_form_{hospital.id}"):
+        language = st.session_state.get(
+            "language",
+            "English"
+        )
 
-            st.subheader("✏️ Edit Hospital")
+        with st.form(
+            f"edit_form_{hospital.id}"
+        ):
+
+            st.subheader(
+                f"✏️ {t('edit_hospital', language)}"
+            )
 
             hospital_name = st.text_input(
-                "Hospital Name",
+                t("hospital_name", language),
                 value=hospital.hospital_name
             )
 
             city = st.text_input(
-                "City",
+                t("city", language),
                 value=hospital.city
             )
 
             state = st.text_input(
-                "State",
+                t("state", language),
                 value=hospital.state
             )
 
             available_beds = st.number_input(
-                "Available Beds",
+                t("available_beds", language),
                 min_value=0,
                 value=hospital.available_beds,
                 step=1
             )
 
             available_doctors = st.number_input(
-                "Available Doctors",
+                t("available_doctors", language),
                 min_value=0,
                 value=hospital.available_doctors,
                 step=1
             )
 
             save = st.form_submit_button(
-                "💾 Save Changes",
+                f"💾 {t('save_changes', language)}",
                 use_container_width=True
             )
 

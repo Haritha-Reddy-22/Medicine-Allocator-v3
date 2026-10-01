@@ -6,49 +6,48 @@ from components.tables.medicine_table import MedicineTable
 from core.database import SessionLocal
 from core.session import SessionManager
 from services.medicine_service import MedicineService
+from translations.languages import t
 
 
 def show_medicines():
 
-    # ==========================================
-    # LOGIN REQUIRED
-    # ==========================================
+    language = st.session_state.get(
+        "language",
+        "English"
+    )
 
     SessionManager.require_login()
-
-    # ==========================================
-    # GET CURRENT USER ROLE
-    # ==========================================
-
     is_admin = SessionManager.is_admin()
-
-    # ==========================================
-    # PAGE TITLE
-    # ==========================================
 
     if is_admin:
 
-        st.title("💊 Medicine Management")
+        st.title(
+            f"💊 {t('medicine_management', language)}"
+        )
 
         st.caption(
-            "Manage and view medicines in the system."
+            t("manage_medicines", language)
         )
 
     else:
 
-        st.title("💊 Medicines")
+        st.title(
+            f"💊 {t('medicines', language)}"
+        )
 
         st.caption(
-            "Search and view available medicines."
+            t("search_view_medicines", language)
         )
 
     # ==========================================
-    # ADMIN: ADD MEDICINE
+    # ADMIN - ADD MEDICINE
     # ==========================================
 
     if is_admin:
 
-        st.subheader("➕ Add Medicine")
+        st.subheader(
+            f"➕ {t('add_medicine', language)}"
+        )
 
         (
             medicine_name,
@@ -59,12 +58,9 @@ def show_medicines():
             expiry_date,
             unit_price,
             description,
+            prescription_required,
             submitted
         ) = MedicineForm.render()
-
-        # ======================================
-        # ADD MEDICINE
-        # ======================================
 
         if submitted:
 
@@ -81,13 +77,13 @@ def show_medicines():
                     batch_number=batch_number,
                     expiry_date=expiry_date,
                     unit_price=unit_price,
-                    description=description
+                    description=description,
+                    prescription_required=prescription_required
                 )
 
                 if success:
 
                     st.success(message)
-
                     st.rerun()
 
                 else:
@@ -104,31 +100,21 @@ def show_medicines():
     # MEDICINE LIST
     # ==========================================
 
-    st.subheader("📋 Available Medicines")
-
-    # ==========================================
-    # SEARCH
-    # ==========================================
-
-    search = st.text_input(
-        "🔍 Search Medicine",
-        placeholder=(
-            "Search by medicine name, "
-            "generic name or category"
-        )
+    st.subheader(
+        f"📋 {t('available_medicines', language)}"
     )
 
-    # ==========================================
-    # DATABASE
-    # ==========================================
+    search = st.text_input(
+        f"🔍 {t('search_medicine', language)}",
+        placeholder=t(
+            "search_medicine_placeholder",
+            language
+        )
+    )
 
     db = SessionLocal()
 
     try:
-
-        # ======================================
-        # SEARCH MEDICINES
-        # ======================================
 
         if search.strip():
 
@@ -143,10 +129,6 @@ def show_medicines():
                 db
             )
 
-        # ======================================
-        # DISPLAY MEDICINES
-        # ======================================
-
         MedicineTable.render(
             db,
             medicines
@@ -155,4 +137,3 @@ def show_medicines():
     finally:
 
         db.close()
-

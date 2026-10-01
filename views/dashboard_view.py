@@ -1,244 +1,263 @@
 import streamlit as st
-import pandas as pd
 
-from core.database import SessionLocal
-
+from core.session import SessionManager
 from services.hospital_service import HospitalService
 from services.medicine_service import MedicineService
 from services.inventory_service import InventoryService
 from services.reservation_service import ReservationService
+from core.database import SessionLocal
+from translations.languages import t
+
+
+# ==========================================================
+# DASHBOARD-SPECIFIC TRANSLATIONS
+# ==========================================================
+
+DASHBOARD_TRANSLATIONS = {
+
+    "English": {
+        "recent_reservations": "Recent Reservations",
+        "no_reservations": "No reservations available.",
+        "admin": "Admin",
+        "admin_dashboard_message":
+            "You have administrator access to manage hospitals, medicines, inventory, reservations and reports.",
+    },
+
+    "Telugu": {
+        "recent_reservations": "ఇటీవలి రిజర్వేషన్లు",
+        "no_reservations": "రిజర్వేషన్లు అందుబాటులో లేవు.",
+        "admin": "అడ్మిన్",
+        "admin_dashboard_message":
+            "హాస్పిటల్స్, మందులు, నిల్వ, రిజర్వేషన్లు మరియు రిపోర్టులను నిర్వహించడానికి మీకు అడ్మిన్ యాక్సెస్ ఉంది.",
+    },
+
+    "Hindi": {
+        "recent_reservations": "हाल के आरक्षण",
+        "no_reservations": "कोई आरक्षण उपलब्ध नहीं है।",
+        "admin": "एडमिन",
+        "admin_dashboard_message":
+            "आपके पास अस्पताल, दवाएँ, इन्वेंटरी, आरक्षण और रिपोर्ट प्रबंधित करने के लिए एडमिन एक्सेस है।",
+    },
+
+    "Tamil": {
+        "recent_reservations": "சமீபத்திய முன்பதிவுகள்",
+        "no_reservations": "முன்பதிவுகள் எதுவும் கிடைக்கவில்லை.",
+        "admin": "நிர்வாகி",
+        "admin_dashboard_message":
+            "மருத்துவமனைகள், மருந்துகள், சரக்கு, முன்பதிவுகள் மற்றும் அறிக்கைகளை நிர்வகிக்க உங்களுக்கு நிர்வாகி அணுகல் உள்ளது.",
+    },
+
+    "Kannada": {
+        "recent_reservations": "ಇತ್ತೀಚಿನ ಮೀಸಲಾತಿಗಳು",
+        "no_reservations": "ಯಾವುದೇ ಮೀಸಲಾತಿಗಳು ಲಭ್ಯವಿಲ್ಲ.",
+        "admin": "ನಿರ್ವಾಹಕರು",
+        "admin_dashboard_message":
+            "ಆಸ್ಪತ್ರೆಗಳು, ಔಷಧಿಗಳು, ದಾಸ್ತಾನು, ಮೀಸಲಾತಿಗಳು ಮತ್ತು ವರದಿಗಳನ್ನು ನಿರ್ವಹಿಸಲು ನಿಮಗೆ ನಿರ್ವಾಹಕ ಪ್ರವೇಶವಿದೆ.",
+    },
+}
+
+
+def dashboard_text(key, language):
+
+    return DASHBOARD_TRANSLATIONS.get(
+        language,
+        DASHBOARD_TRANSLATIONS["English"]
+    ).get(
+        key,
+        DASHBOARD_TRANSLATIONS["English"].get(key, key)
+    )
 
 
 def show_dashboard():
 
-    st.title("📊 Medicine Allocator Dashboard")
+    language = st.session_state.get(
+        "language",
+        "English"
+    )
+
+    SessionManager.require_user()
+
+    user_name = SessionManager.get_user_name()
+    is_admin = SessionManager.is_admin()
+
+    # ==========================================================
+    # PAGE TITLE
+    # ==========================================================
+
+    st.title(
+        f"🏠 {t('dashboard', language)}"
+    )
+
+    st.write(
+        f"{t('welcome', language)}, "
+        f"**{user_name}** 👋"
+    )
 
     db = SessionLocal()
 
     try:
 
-        # --------------------------------------------------
-        # FETCH DATA
-        # --------------------------------------------------
+        # ======================================================
+        # GET DATA
+        # ======================================================
 
         hospitals = HospitalService.get_all_hospitals(db)
+
         medicines = MedicineService.get_all_medicines(db)
-        inventory_items = InventoryService.get_all_inventory(db)
-        low_stock_items = InventoryService.get_low_stock_inventory(db)
-        reservations = ReservationService.get_all_reservations(db)
 
-        # --------------------------------------------------
-        # CALCULATE SUMMARY
-        # --------------------------------------------------
+        inventory = InventoryService.get_all_inventory(db)
 
-        total_hospitals = len(hospitals)
-        total_medicines = len(medicines)
-        total_inventory = sum(
-            item.quantity
-            for item in inventory_items
-        )
+        if is_admin:
 
-        total_reservations = len(reservations)
-
-        pending_reservations = sum(
-            1
-            for reservation in reservations
-            if reservation.status == "Pending"
-        )
-
-        approved_reservations = sum(
-            1
-            for reservation in reservations
-            if reservation.status == "Approved"
-        )
-
-        completed_reservations = sum(
-            1
-            for reservation in reservations
-            if reservation.status == "Completed"
-        )
-
-        cancelled_reservations = sum(
-            1
-            for reservation in reservations
-            if reservation.status == "Cancelled"
-        )
-
-        # --------------------------------------------------
-        # SUMMARY CARDS
-        # --------------------------------------------------
-
-        st.subheader("📌 Overview")
-
-        col1, col2, col3, col4, col5 = st.columns(5)
-
-        with col1:
-            st.metric(
-                "🏥 Hospitals",
-                total_hospitals
+            reservations = (
+                ReservationService.get_all_reservations(
+                    db,
+                    is_admin=True
+                )
             )
 
-        with col2:
-            st.metric(
-                "💊 Medicines",
-                total_medicines
+        else:
+
+            user_id = SessionManager.get_user_id()
+
+            reservations = (
+                ReservationService.get_user_reservations(
+                    db,
+                    user_id
+                )
             )
 
-        with col3:
-            st.metric(
-                "📦 Total Stock",
-                total_inventory
-            )
-
-        with col4:
-            st.metric(
-                "📌 Reservations",
-                total_reservations
-            )
-
-        with col5:
-            st.metric(
-                "🔴 Low Stock",
-                len(low_stock_items)
-            )
-
-        st.divider()
-
-        # --------------------------------------------------
-        # RESERVATION STATUS
-        # --------------------------------------------------
-
-        st.subheader("📌 Reservation Status")
+        # ======================================================
+        # STATISTICS
+        # ======================================================
 
         col1, col2, col3, col4 = st.columns(4)
 
+        # ------------------------------------------------------
+        # HOSPITALS
+        # ------------------------------------------------------
+
         with col1:
+
             st.metric(
-                "🟡 Pending",
-                pending_reservations
+                f"🏥 {t('hospitals', language)}",
+                len(hospitals)
             )
+
+        # ------------------------------------------------------
+        # MEDICINES
+        # ------------------------------------------------------
 
         with col2:
+
             st.metric(
-                "🟢 Approved",
-                approved_reservations
+                f"💊 {t('medicines', language)}",
+                len(medicines)
             )
+
+        # ------------------------------------------------------
+        # INVENTORY
+        # ------------------------------------------------------
 
         with col3:
+
             st.metric(
-                "🏁 Completed",
-                completed_reservations
+                f"📦 {t('inventory', language)}",
+                len(inventory)
             )
+
+        # ------------------------------------------------------
+        # RESERVATIONS
+        # ------------------------------------------------------
 
         with col4:
+
             st.metric(
-                "🔴 Cancelled",
-                cancelled_reservations
+                f"📋 {t('reservations', language)}",
+                len(reservations)
             )
 
-        if reservations:
-
-            status_data = pd.DataFrame({
-                "Status": [
-                    "Pending",
-                    "Approved",
-                    "Completed",
-                    "Cancelled"
-                ],
-                "Count": [
-                    pending_reservations,
-                    approved_reservations,
-                    completed_reservations,
-                    cancelled_reservations
-                ]
-            })
-
-            st.bar_chart(
-                status_data.set_index("Status")
-            )
+        # ======================================================
+        # RECENT RESERVATIONS
+        # ======================================================
 
         st.divider()
 
-        # --------------------------------------------------
-        # LOW STOCK
-        # --------------------------------------------------
+        st.subheader(
+            f"📋 {dashboard_text('recent_reservations', language)}"
+        )
 
-        st.subheader("⚠️ Low Stock Medicines")
+        if not reservations:
 
-        if not low_stock_items:
-
-            st.success("No low-stock medicines currently.")
+            st.info(
+                dashboard_text(
+                    "no_reservations",
+                    language
+                )
+            )
 
         else:
 
-            low_stock_table = []
+            # Show latest 5 reservations
+            recent = reservations[:5]
 
-            for item in low_stock_items:
+            for reservation in recent:
+
+                # --------------------------------------------------
+                # HOSPITAL NAME
+                # --------------------------------------------------
 
                 hospital_name = (
-                    item.hospital.hospital_name
-                    if item.hospital
-                    else "Unknown"
+                    reservation.hospital.hospital_name
+                    if reservation.hospital
+                    else t("unknown", language)
                 )
+
+                # --------------------------------------------------
+                # MEDICINE NAME
+                # --------------------------------------------------
 
                 medicine_name = (
-                    item.medicine.medicine_name
-                    if item.medicine
-                    else "Unknown"
+                    reservation.medicine.medicine_name
+                    if reservation.medicine
+                    else t("unknown", language)
                 )
 
-                low_stock_table.append({
-                    "Hospital": hospital_name,
-                    "Medicine": medicine_name,
-                    "Current Stock": item.quantity,
-                    "Reorder Level": item.reorder_level
-                })
+                # --------------------------------------------------
+                # RESERVATION CARD
+                # --------------------------------------------------
 
-            st.dataframe(
-                low_stock_table,
-                use_container_width=True,
-                hide_index=True
-            )
+                st.markdown(
+                    f"""
+### 🏥 {hospital_name}
 
-        st.divider()
+💊 **{t('medicine', language)}:** {medicine_name}
 
-        # --------------------------------------------------
-        # INVENTORY BY HOSPITAL
-        # --------------------------------------------------
+🔢 **{t('quantity', language)}:** {reservation.quantity}
 
-        st.subheader("🏥 Hospital-wise Inventory")
+📌 **{t('status', language)}:** {reservation.status}
 
-        if not inventory_items:
-
-            st.info("No inventory data available.")
-
-        else:
-
-            hospital_inventory = {}
-
-            for item in inventory_items:
-
-                hospital_name = (
-                    item.hospital.hospital_name
-                    if item.hospital
-                    else "Unknown"
+---
+"""
                 )
 
-                if hospital_name not in hospital_inventory:
-                    hospital_inventory[hospital_name] = 0
+        # ======================================================
+        # ADMIN INFORMATION
+        # ======================================================
 
-                hospital_inventory[hospital_name] += item.quantity
+        if is_admin:
 
-            inventory_data = pd.DataFrame(
-                list(hospital_inventory.items()),
-                columns=[
-                    "Hospital",
-                    "Total Stock"
-                ]
+            st.divider()
+
+            st.subheader(
+                f"👑 {dashboard_text('admin', language)}"
             )
 
-            st.bar_chart(
-                inventory_data.set_index("Hospital")
+            st.info(
+                dashboard_text(
+                    "admin_dashboard_message",
+                    language
+                )
             )
 
     finally:

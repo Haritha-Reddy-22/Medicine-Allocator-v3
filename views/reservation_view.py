@@ -1,3 +1,4 @@
+import os
 
 import streamlit as st
 
@@ -7,9 +8,91 @@ from core.session import SessionManager
 from services.hospital_service import HospitalService
 from services.medicine_service import MedicineService
 from services.reservation_service import ReservationService
+from translations.languages import t
+
+
+def show_prescription(
+    prescription_path
+):
+
+    if not prescription_path:
+
+        st.warning(
+            "Prescription file is not available."
+        )
+
+        return
+
+    if not os.path.exists(
+        prescription_path
+    ):
+
+        st.error(
+            "Prescription file could not be found."
+        )
+
+        return
+
+    file_extension = os.path.splitext(
+        prescription_path
+    )[1].lower()
+
+    # ==========================================
+    # IMAGE
+    # ==========================================
+
+    if file_extension in [
+        ".jpg",
+        ".jpeg",
+        ".png"
+    ]:
+
+        st.image(
+            prescription_path,
+            caption="Uploaded Prescription",
+            use_container_width=True
+        )
+
+    # ==========================================
+    # PDF
+    # ==========================================
+
+    elif file_extension == ".pdf":
+
+        with open(
+            prescription_path,
+            "rb"
+        ) as file:
+
+            pdf_data = file.read()
+
+        st.download_button(
+            label="📄 Open / Download Prescription",
+            data=pdf_data,
+            file_name=os.path.basename(
+                prescription_path
+            ),
+            mime="application/pdf",
+            key=(
+                f"download_prescription_"
+                f"{os.path.basename(prescription_path)}"
+            ),
+            use_container_width=True
+        )
+
+    else:
+
+        st.warning(
+            "Unsupported prescription file."
+        )
 
 
 def show_reservations():
+
+    language = st.session_state.get(
+        "language",
+        "English"
+    )
 
     # ==========================================
     # USER / ADMIN ACCESS
@@ -17,14 +100,22 @@ def show_reservations():
 
     SessionManager.require_user()
 
-    current_user_id = SessionManager.get_user_id()
-    is_admin = SessionManager.is_admin()
+    current_user_id = (
+        SessionManager.get_user_id()
+    )
+
+    is_admin = (
+        SessionManager.is_admin()
+    )
 
     # ==========================================
     # PAGE TITLE
     # ==========================================
 
-    st.title("📌 Medicine Reservations")
+    st.title(
+        f"📌 "
+        f"{t('medicine_reservations', language)}"
+    )
 
     db = SessionLocal()
 
@@ -34,13 +125,25 @@ def show_reservations():
         # GET HOSPITALS & MEDICINES
         # ==========================================
 
-        hospitals = HospitalService.get_all_hospitals(db)
-        medicines = MedicineService.get_all_medicines(db)
+        hospitals = (
+            HospitalService.get_all_hospitals(
+                db
+            )
+        )
+
+        medicines = (
+            MedicineService.get_all_medicines(
+                db
+            )
+        )
 
         if not hospitals:
 
             st.warning(
-                "Please add at least one hospital first."
+                t(
+                    "please_add_hospital_first",
+                    language
+                )
             )
 
             return
@@ -48,7 +151,10 @@ def show_reservations():
         if not medicines:
 
             st.warning(
-                "Please add at least one medicine first."
+                t(
+                    "please_add_medicine_first",
+                    language
+                )
             )
 
             return
@@ -58,7 +164,10 @@ def show_reservations():
         # USER + ADMIN
         # ==========================================
 
-        st.subheader("➕ Create Reservation")
+        st.subheader(
+            f"➕ "
+            f"{t('create_reservation', language)}"
+        )
 
         (
             hospital_id,
@@ -72,24 +181,56 @@ def show_reservations():
 
         if submitted:
 
-            success, message = (
-                ReservationService.add_reservation(
-                    db=db,
-                    user_id=current_user_id,
-                    hospital_id=hospital_id,
-                    medicine_id=medicine_id,
-                    quantity=quantity
+            # --------------------------------------
+            # CHECK PRESCRIPTION REQUIREMENT
+            # --------------------------------------
+
+            selected_medicine = (
+                MedicineService.get_medicine_by_id(
+                    db,
+                    medicine_id
                 )
             )
 
-            if success:
+            if (
+                selected_medicine
+                and selected_medicine.prescription_required
+            ):
 
-                st.success(message)
-                st.rerun()
+                st.warning(
+                    "📄 This medicine requires a "
+                    "prescription. Please use the "
+                    "Medicine Allocator to upload "
+                    "your prescription and submit "
+                    "the reservation."
+                )
 
             else:
 
-                st.error(message)
+                success, message = (
+                    ReservationService
+                    .add_reservation(
+                        db=db,
+                        user_id=current_user_id,
+                        hospital_id=hospital_id,
+                        medicine_id=medicine_id,
+                        quantity=quantity
+                    )
+                )
+
+                if success:
+
+                    st.success(
+                        message
+                    )
+
+                    st.rerun()
+
+                else:
+
+                    st.error(
+                        message
+                    )
 
         st.divider()
 
@@ -97,16 +238,16 @@ def show_reservations():
         # RESERVATION LIST
         # ==========================================
 
-        st.subheader("📋 Reservation List")
+        st.subheader(
+            f"📋 "
+            f"{t('reservation_list', language)}"
+        )
 
         if is_admin:
 
-            # --------------------------------------
-            # ADMIN → ALL RESERVATIONS
-            # --------------------------------------
-
             reservations = (
-                ReservationService.get_all_reservations(
+                ReservationService
+                .get_all_reservations(
                     db,
                     is_admin=True
                 )
@@ -114,12 +255,9 @@ def show_reservations():
 
         else:
 
-            # --------------------------------------
-            # USER → ONLY THEIR RESERVATIONS
-            # --------------------------------------
-
             reservations = (
-                ReservationService.get_user_reservations(
+                ReservationService
+                .get_user_reservations(
                     db,
                     current_user_id
                 )
@@ -132,7 +270,10 @@ def show_reservations():
         if not reservations:
 
             st.info(
-                "No reservations available."
+                t(
+                    "no_reservations",
+                    language
+                )
             )
 
         else:
@@ -146,167 +287,371 @@ def show_reservations():
                 hospital_name = (
                     reservation.hospital.hospital_name
                     if reservation.hospital
-                    else "Unknown"
+                    else t(
+                        "unknown",
+                        language
+                    )
                 )
 
                 medicine_name = (
                     reservation.medicine.medicine_name
                     if reservation.medicine
-                    else "Unknown"
+                    else t(
+                        "unknown",
+                        language
+                    )
                 )
 
-                st.markdown(
-                    f"""
+                # ======================================
+                # RESERVATION CARD
+                # ======================================
+
+                with st.container(
+                    border=True
+                ):
+
+                    st.markdown(
+                        f"""
 ### 🏥 {hospital_name}
 
-**💊 Medicine:** {medicine_name}  
-**🔢 Quantity:** {reservation.quantity}  
-**📅 Reserved At:** {reservation.reserved_at}  
-**📌 Status:** {reservation.status}
+**💊 {t('medicine', language)}:** {medicine_name}  
+**🔢 {t('quantity', language)}:** {reservation.quantity}  
+**📅 {t('reserved_at', language)}:** {reservation.reserved_at}  
+**📌 {t('status', language)}:** {reservation.status}
 """
-                )
+                    )
 
-                # ==========================================
-                # ADMIN ACTIONS
-                # ==========================================
+                    # ==================================
+                    # PRESCRIPTION INFORMATION
+                    # ==================================
 
-                if is_admin:
+                    prescription_status = getattr(
+                        reservation,
+                        "prescription_status",
+                        "Not Required"
+                    )
 
-                    # ======================================
-                    # PENDING → APPROVE / REJECT
-                    # ======================================
+                    if (
+                        prescription_status
+                        != "Not Required"
+                    ):
 
-                    if reservation.status == "Pending":
+                        st.markdown(
+                            f"📄 **Prescription Status:** "
+                            f"{prescription_status}"
+                        )
 
-                        col1, col2 = st.columns(2)
+                    # ==================================
+                    # ADMIN ACTIONS
+                    # ==================================
 
-                        # ----------------------------------
-                        # APPROVE
-                        # ----------------------------------
+                    if is_admin:
 
-                        with col1:
+                        # ==================================
+                        # PRESCRIPTION REVIEW
+                        # ==================================
+
+                        if (
+                            prescription_status
+                            == "Pending Review"
+                        ):
+
+                            st.divider()
+
+                            st.subheader(
+                                "📄 Prescription Review"
+                            )
+
+                            show_prescription(
+                                reservation.prescription_path
+                            )
+
+                            col1, col2 = st.columns(
+                                2
+                            )
+
+                            # ------------------------------
+                            # APPROVE PRESCRIPTION
+                            # ------------------------------
+
+                            with col1:
+
+                                if st.button(
+                                    "✅ Approve Prescription",
+                                    key=(
+                                        f"approve_prescription_"
+                                        f"{reservation.id}"
+                                    ),
+                                    use_container_width=True
+                                ):
+
+                                    (
+                                        success,
+                                        message
+                                    ) = (
+                                        ReservationService
+                                        .approve_prescription(
+                                            db=db,
+                                            reservation_id=(
+                                                reservation.id
+                                            ),
+                                            is_admin=True
+                                        )
+                                    )
+
+                                    if success:
+
+                                        st.success(
+                                            message
+                                        )
+
+                                        st.rerun()
+
+                                    else:
+
+                                        st.error(
+                                            message
+                                        )
+
+                            # ------------------------------
+                            # REJECT PRESCRIPTION
+                            # ------------------------------
+
+                            with col2:
+
+                                if st.button(
+                                    "❌ Reject Prescription",
+                                    key=(
+                                        f"reject_prescription_"
+                                        f"{reservation.id}"
+                                    ),
+                                    use_container_width=True
+                                ):
+
+                                    (
+                                        success,
+                                        message
+                                    ) = (
+                                        ReservationService
+                                        .reject_prescription(
+                                            db=db,
+                                            reservation_id=(
+                                                reservation.id
+                                            ),
+                                            is_admin=True
+                                        )
+                                    )
+
+                                    if success:
+
+                                        st.success(
+                                            message
+                                        )
+
+                                        st.rerun()
+
+                                    else:
+
+                                        st.error(
+                                            message
+                                        )
+
+                        # ==================================
+                        # NORMAL PENDING RESERVATION
+                        # ==================================
+
+                        if reservation.status == "Pending":
+
+                            # ----------------------------------
+                            # APPROVE
+                            # ----------------------------------
+
+                            col1, col2 = st.columns(
+                                2
+                            )
+
+                            with col1:
+
+                                if st.button(
+                                    f"✅ "
+                                    f"{t('approve', language)}",
+                                    key=(
+                                        f"approve_"
+                                        f"{reservation.id}"
+                                    ),
+                                    use_container_width=True
+                                ):
+
+                                    (
+                                        success,
+                                        message
+                                    ) = (
+                                        ReservationService
+                                        .approve_reservation(
+                                            db=db,
+                                            reservation_id=(
+                                                reservation.id
+                                            ),
+                                            is_admin=True
+                                        )
+                                    )
+
+                                    if success:
+
+                                        st.success(
+                                            message
+                                        )
+
+                                        st.rerun()
+
+                                    else:
+
+                                        st.error(
+                                            message
+                                        )
+
+                            # ----------------------------------
+                            # REJECT / CANCEL
+                            # ----------------------------------
+
+                            with col2:
+
+                                if st.button(
+                                    f"❌ "
+                                    f"{t('reject', language)}",
+                                    key=(
+                                        f"reject_"
+                                        f"{reservation.id}"
+                                    ),
+                                    use_container_width=True
+                                ):
+
+                                    (
+                                        success,
+                                        message
+                                    ) = (
+                                        ReservationService
+                                        .cancel_reservation(
+                                            db=db,
+                                            reservation_id=(
+                                                reservation.id
+                                            ),
+                                            current_user_id=(
+                                                current_user_id
+                                            ),
+                                            is_admin=True
+                                        )
+                                    )
+
+                                    if success:
+
+                                        st.success(
+                                            message
+                                        )
+
+                                        st.rerun()
+
+                                    else:
+
+                                        st.error(
+                                            message
+                                        )
+
+                        # ==================================
+                        # APPROVED → COMPLETE
+                        # ==================================
+
+                        elif reservation.status == "Approved":
 
                             if st.button(
-                                "✅ Approve",
-                                key=f"approve_{reservation.id}",
+                                f"🏁 "
+                                f"{t('mark_completed', language)}",
+                                key=(
+                                    f"complete_"
+                                    f"{reservation.id}"
+                                ),
                                 use_container_width=True
                             ):
 
-                                success, message = (
+                                (
+                                    success,
+                                    message
+                                ) = (
                                     ReservationService
-                                    .approve_reservation(
+                                    .complete_reservation(
                                         db=db,
-                                        reservation_id=reservation.id,
+                                        reservation_id=(
+                                            reservation.id
+                                        ),
                                         is_admin=True
                                     )
                                 )
 
                                 if success:
 
-                                    st.success(message)
+                                    st.success(
+                                        message
+                                    )
+
                                     st.rerun()
 
                                 else:
 
-                                    st.error(message)
+                                    st.error(
+                                        message
+                                    )
 
-                        # ----------------------------------
-                        # REJECT
-                        # ----------------------------------
+                    # ======================================
+                    # USER ACTIONS
+                    # ======================================
 
-                        with col2:
+                    else:
+
+                        if reservation.status in [
+                            "Pending",
+                            "Pending Review"
+                        ]:
 
                             if st.button(
-                                "❌ Reject",
-                                key=f"reject_{reservation.id}",
+                                f"❌ "
+                                f"{t('cancel_reservation', language)}",
+                                key=(
+                                    f"user_cancel_"
+                                    f"{reservation.id}"
+                                ),
                                 use_container_width=True
                             ):
 
-                                success, message = (
+                                (
+                                    success,
+                                    message
+                                ) = (
                                     ReservationService
                                     .cancel_reservation(
                                         db=db,
-                                        reservation_id=reservation.id,
-                                        current_user_id=current_user_id,
-                                        is_admin=True
+                                        reservation_id=(
+                                            reservation.id
+                                        ),
+                                        current_user_id=(
+                                            current_user_id
+                                        ),
+                                        is_admin=False
                                     )
                                 )
 
                                 if success:
 
-                                    st.success(message)
+                                    st.success(
+                                        message
+                                    )
+
                                     st.rerun()
 
                                 else:
 
-                                    st.error(message)
-
-                    # ======================================
-                    # APPROVED → COMPLETE
-                    # ======================================
-
-                    elif reservation.status == "Approved":
-
-                        if st.button(
-                            "🏁 Mark as Completed",
-                            key=f"complete_{reservation.id}",
-                            use_container_width=True
-                        ):
-
-                            success, message = (
-                                ReservationService
-                                .complete_reservation(
-                                    db=db,
-                                    reservation_id=reservation.id,
-                                    is_admin=True
-                                )
-                            )
-
-                            if success:
-
-                                st.success(message)
-                                st.rerun()
-
-                            else:
-
-                                st.error(message)
-
-                # ==========================================
-                # USER ACTIONS
-                # ==========================================
-
-                else:
-
-                    # --------------------------------------
-                    # USER CAN CANCEL OWN PENDING RESERVATION
-                    # --------------------------------------
-
-                    if reservation.status == "Pending":
-
-                        if st.button(
-                            "❌ Cancel Reservation",
-                            key=f"user_cancel_{reservation.id}",
-                            use_container_width=True
-                        ):
-
-                            success, message = (
-                                ReservationService
-                                .cancel_reservation(
-                                    db=db,
-                                    reservation_id=reservation.id,
-                                    current_user_id=current_user_id,
-                                    is_admin=False
-                                )
-                            )
-
-                            if success:
-
-                                st.success(message)
-                                st.rerun()
-
-                            else:
-
-                                st.error(message)
+                                    st.error(
+                                        message
+                                    )
 
                 st.divider()
 

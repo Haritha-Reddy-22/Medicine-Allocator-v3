@@ -6,6 +6,10 @@ from repositories.medicine_repository import MedicineRepository
 
 class MedicineService:
 
+    # ==========================================
+    # ADD MEDICINE
+    # ==========================================
+
     @staticmethod
     def add_medicine(
         db: Session,
@@ -16,7 +20,8 @@ class MedicineService:
         batch_number: str,
         expiry_date,
         unit_price: float,
-        description: str
+        description: str,
+        prescription_required: bool = False
     ):
 
         if not medicine_name.strip():
@@ -31,6 +36,9 @@ class MedicineService:
         if not manufacturer.strip():
             return False, "Manufacturer is required."
 
+        if not batch_number.strip():
+            return False, "Batch number is required."
+
         if unit_price < 0:
             return False, "Unit price cannot be negative."
 
@@ -42,7 +50,8 @@ class MedicineService:
             batch_number=batch_number,
             expiry_date=expiry_date,
             unit_price=unit_price,
-            description=description
+            description=description,
+            prescription_required=prescription_required
         )
 
         MedicineRepository.create_medicine(
@@ -52,12 +61,20 @@ class MedicineService:
 
         return True, "Medicine Added Successfully."
 
+    # ==========================================
+    # GET ALL MEDICINES
+    # ==========================================
+
     @staticmethod
     def get_all_medicines(
         db: Session
     ):
 
         return MedicineRepository.get_all_medicines(db)
+
+    # ==========================================
+    # SEARCH MEDICINES
+    # ==========================================
 
     @staticmethod
     def search_medicines(
@@ -70,6 +87,10 @@ class MedicineService:
             keyword
         )
 
+    # ==========================================
+    # GET MEDICINE BY ID
+    # ==========================================
+
     @staticmethod
     def get_medicine_by_id(
         db: Session,
@@ -81,6 +102,10 @@ class MedicineService:
             medicine_id
         )
 
+    # ==========================================
+    # UPDATE MEDICINE
+    # ==========================================
+
     @staticmethod
     def update_medicine(
         db: Session,
@@ -90,7 +115,8 @@ class MedicineService:
         category: str,
         manufacturer: str,
         unit_price: float,
-        description: str
+        description: str,
+        prescription_required: bool = False
     ):
 
         medicine = MedicineRepository.get_medicine_by_id(
@@ -107,6 +133,7 @@ class MedicineService:
         medicine.manufacturer = manufacturer
         medicine.unit_price = unit_price
         medicine.description = description
+        medicine.prescription_required = prescription_required
 
         MedicineRepository.update_medicine(
             db,
@@ -115,9 +142,13 @@ class MedicineService:
 
         return True, "Medicine Updated Successfully."
 
+    # ==========================================
+    # DELETE MEDICINE
+    # ==========================================
+
     @staticmethod
     def delete_medicine(
-        db: Session,
+        db,
         medicine_id: int
     ):
 
@@ -135,3 +166,25 @@ class MedicineService:
         )
 
         return True, "Medicine Deleted Successfully."
+
+    # ==========================================
+    # CHECK PRESCRIPTION REQUIREMENT
+    # ==========================================
+
+    @staticmethod
+    def requires_prescription(
+        db: Session,
+        medicine_id: int
+    ):
+
+        medicine = MedicineRepository.get_medicine_by_id(
+            db,
+            medicine_id
+        )
+
+        if not medicine:
+            return False
+
+        return bool(
+            medicine.prescription_required
+        )

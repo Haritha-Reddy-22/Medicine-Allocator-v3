@@ -1,14 +1,26 @@
 import streamlit as st
 
+from translations.languages import t
+
 
 class InventoryForm:
 
     @staticmethod
     def render(hospitals, medicines):
 
-        with st.form("inventory_form", clear_on_submit=True):
+        language = st.session_state.get(
+            "language",
+            "English"
+        )
 
-            st.subheader("📦 Add Inventory")
+        with st.form(
+            "inventory_form",
+            clear_on_submit=True
+        ):
+
+            st.subheader(
+                f"📦 {t('add_inventory', language)}"
+            )
 
             hospital_options = {
                 hospital.hospital_name: hospital.id
@@ -21,12 +33,12 @@ class InventoryForm:
             }
 
             hospital_name = st.selectbox(
-                "🏥 Hospital",
+                f"🏥 {t('hospital', language)}",
                 list(hospital_options.keys())
             )
 
             medicine_name = st.selectbox(
-                "💊 Medicine",
+                f"💊 {t('medicine', language)}",
                 list(medicine_options.keys())
             )
 
@@ -35,7 +47,7 @@ class InventoryForm:
             with col1:
 
                 quantity = st.number_input(
-                    "Quantity",
+                    t("quantity", language),
                     min_value=0,
                     value=0,
                     step=1
@@ -44,14 +56,14 @@ class InventoryForm:
             with col2:
 
                 reorder_level = st.number_input(
-                    "Reorder Level",
+                    t("reorder_level", language),
                     min_value=0,
                     value=10,
                     step=1
                 )
 
             submitted = st.form_submit_button(
-                "➕ Add Inventory",
+                f"➕ {t('add_inventory', language)}",
                 use_container_width=True
             )
 

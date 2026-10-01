@@ -1,6 +1,6 @@
-
 from models.inventory import Inventory
 from models.reservation import Reservation
+from models.medicine import Medicine
 
 
 class ReservationService:
@@ -16,7 +16,8 @@ class ReservationService:
         user_id,
         hospital_id,
         medicine_id,
-        quantity
+        quantity,
+        prescription_path=None
     ):
 
         try:
@@ -53,17 +54,67 @@ class ReservationService:
                     "Insufficient stock available."
                 )
 
+            medicine = (
+                db.query(Medicine)
+                .filter(
+                    Medicine.id == medicine_id
+                )
+                .first()
+            )
+
+            if not medicine:
+
+                return (
+                    False,
+                    "Medicine not found."
+                )
+
+            # ======================================
+            # PRESCRIPTION VALIDATION
+            # ======================================
+
+            if medicine.prescription_required:
+
+                if not prescription_path:
+
+                    return (
+                        False,
+                        "A prescription is required for this medicine."
+                    )
+
+                reservation_status = "Pending Review"
+                prescription_status = "Pending Review"
+
+            else:
+
+                reservation_status = "Pending"
+                prescription_status = "Not Required"
+
+            # ======================================
+            # CREATE RESERVATION
+            # ======================================
+
             reservation = Reservation(
                 user_id=user_id,
                 hospital_id=hospital_id,
                 medicine_id=medicine_id,
                 quantity=quantity,
-                status="Pending"
+                status=reservation_status,
+                prescription_path=prescription_path,
+                prescription_status=prescription_status
             )
 
             db.add(reservation)
             db.commit()
             db.refresh(reservation)
+
+            if medicine.prescription_required:
+
+                return (
+                    True,
+                    "Prescription submitted successfully. "
+                    "Your reservation is pending review."
+                )
 
             return (
                 True,
@@ -88,7 +139,6 @@ class ReservationService:
     ):
 
         if not is_admin:
-
             return []
 
         return (
@@ -110,7 +160,6 @@ class ReservationService:
     ):
 
         if not user_id:
-
             return []
 
         return (
@@ -160,11 +209,36 @@ class ReservationService:
                     "Reservation not found."
                 )
 
-            if reservation.status != "Pending":
+            # ======================================
+            # NORMAL RESERVATION
+            # OR PRESCRIPTION APPROVED
+            # ======================================
+
+            allowed_statuses = [
+                "Pending",
+                "Pending Review"
+            ]
+
+            if reservation.status not in allowed_statuses:
 
                 return (
                     False,
                     "Only pending reservations can be approved."
+                )
+
+            # ======================================
+            # PRESCRIPTION CHECK
+            # ======================================
+
+            if (
+                reservation.prescription_status
+                == "Pending Review"
+            ):
+
+                return (
+                    False,
+                    "Prescription review is required before "
+                    "this reservation can be approved."
                 )
 
             inventory = (
@@ -212,14 +286,132 @@ class ReservationService:
             return False, str(e)
 
     # ==========================================
+    # APPROVE PRESCRIPTION
+    # ADMIN ONLY
+    # ==========================================
+
+    @staticmethod
+    def approve_prescription(
+        db,
+        reservation_id,
+        is_admin=False
+    ):
+
+        try:
+
+            if not is_admin:
+
+                return (
+                    False,
+                    "Administrator privileges are required."
+                )
+
+            reservation = (
+                db.query(Reservation)
+                .filter(
+                    Reservation.id == reservation_id
+                )
+                .first()
+            )
+
+            if not reservation:
+
+                return (
+                    False,
+                    "Reservation not found."
+                )
+
+            if reservation.prescription_status != "Pending Review":
+
+                return (
+                    False,
+                    "This prescription is not pending review."
+                )
+
+            reservation.prescription_status = "Approved"
+
+            # The reservation itself remains pending
+            # until the admin approves the reservation.
+
+            reservation.status = "Pending"
+
+            db.commit()
+            db.refresh(reservation)
+
+            return (
+                True,
+                "Prescription approved successfully. "
+                "Reservation can now be approved."
+            )
+
+        except Exception as e:
+
+            db.rollback()
+
+            return False, str(e)
+
+    # ==========================================
+    # REJECT PRESCRIPTION
+    # ADMIN ONLY
+    # ==========================================
+
+    @staticmethod
+    def reject_prescription(
+        db,
+        reservation_id,
+        is_admin=False
+    ):
+
+        try:
+
+            if not is_admin:
+
+                return (
+                    False,
+                    "Administrator privileges are required."
+                )
+
+            reservation = (
+                db.query(Reservation)
+                .filter(
+                    Reservation.id == reservation_id
+                )
+                .first()
+            )
+
+            if not reservation:
+
+                return (
+                    False,
+                    "Reservation not found."
+                )
+
+            if reservation.prescription_status != "Pending Review":
+
+                return (
+                    False,
+                    "This prescription is not pending review."
+                )
+
+            reservation.prescription_status = "Rejected"
+            reservation.status = "Rejected"
+
+            db.commit()
+            db.refresh(reservation)
+
+            return (
+                True,
+                "Prescription rejected."
+            )
+
+        except Exception as e:
+
+            db.rollback()
+
+            return False, str(e)
+
+    # ==========================================
     # CANCEL RESERVATION
-    #
-    # ADMIN:
-    #   Can cancel any Pending reservation
-    #
-    # USER:
-    #   Can cancel only their own Pending
-    #   reservation
     # ==========================================
 
     @staticmethod
@@ -247,7 +439,10 @@ class ReservationService:
                     "Reservation not found."
                 )
 
-            if reservation.status != "Pending":
+            if reservation.status not in [
+                "Pending",
+                "Pending Review"
+            ]:
 
                 return (
                     False,
@@ -356,4 +551,3 @@ class ReservationService:
             db.rollback()
 
             return False, str(e)
-

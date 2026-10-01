@@ -1,10 +1,17 @@
 import streamlit as st
 
+from translations.languages import t
+
 
 class ReservationForm:
 
     @staticmethod
     def render(hospitals, medicines):
+
+        language = st.session_state.get(
+            "language",
+            "English"
+        )
 
         hospital_options = {
             hospital.hospital_name: hospital.id
@@ -17,24 +24,24 @@ class ReservationForm:
         }
 
         hospital_name = st.selectbox(
-            "Select Hospital",
+            f"🏥 {t('select_hospital', language)}",
             list(hospital_options.keys())
         )
 
         medicine_name = st.selectbox(
-            "Select Medicine",
+            f"💊 {t('select_medicine', language)}",
             list(medicine_options.keys())
         )
 
         quantity = st.number_input(
-            "Quantity",
+            t("quantity", language),
             min_value=1,
             value=1,
             step=1
         )
 
         submitted = st.button(
-            "📌 Create Reservation",
+            f"📌 {t('create_reservation', language)}",
             use_container_width=True
         )
 

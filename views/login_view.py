@@ -4,18 +4,25 @@ from components.forms.login_form import LoginForm
 from services.auth_service import AuthService
 from core.database import SessionLocal
 from core.session import SessionManager
+from translations.languages import t
 
 
 def show_login():
 
-    st.title("🔐 Login")
+    # Get currently selected language
+    language = st.session_state.get("language", "English")
+
+    st.title(f"🔐 {t('login', language)}")
 
     email, password, submitted = LoginForm.render()
 
     if submitted:
 
         if not email.strip() or not password.strip():
-            st.warning("Please enter Email and Password.")
+            st.warning(
+                f"⚠️ {t('error', language)}: "
+                "Please enter Email and Password."
+            )
             return
 
         db = SessionLocal()
@@ -34,9 +41,14 @@ def show_login():
                 SessionManager.login(result)
 
                 # Show success message
-                st.success("✅ Login Successful!")
+                st.success(
+                    f"✅ {t('login', language)} "
+                    f"{t('success', language)}!"
+                )
 
-                st.info("👉 Now click 'Dashboard' from the left sidebar.")
+                st.info(
+                    "👉 Now click 'Dashboard' from the left sidebar."
+                )
 
             else:
 
